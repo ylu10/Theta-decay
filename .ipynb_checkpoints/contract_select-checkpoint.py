@@ -15,32 +15,28 @@ def contract_selct(
     main: pd.DataFrame = None,
     maxDTE: int = 20,
     minDTE: int = 10,
-    maxDistance: int = None,
-    minDistance: int = None,
-    maxThata: int = None,
-    minTheta: int = None,
+    maxDistance: float = None,
+    minDistance: float = None,
+    maxThata: float = None,
+    minTheta: float = None,
     moneyness : str = 'out') ->pd.DataFrame:
     
 """
-return a dataframe containing the information of selected contrats
+return a dataframe containing the information of selected contracts
 
 input:
 selct_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
-
 date: str in form of "yyyy-mm-dd", declare the date
-
 data : 'spy' or 'spx'
-
 main: None when selct_type = 'main', a dataframe containing the main contract when selct_type = 'hedge'
-
 maxDTE: max DTE
 minDTE: min DTE
-
-maxDistance: max distance
-minDistance: min distance
-
+maxDistance: max distance of strike from underlying in percentage
+minDistance: min distance of strike from underlying in percentage
 maxThata: max Theta
 minTheta: min Theta
-
 moneyness: 'out' or 'in'
 """
+    contract_pd = pd.Dataframe()
+    if selct_type == 'main':
+        
