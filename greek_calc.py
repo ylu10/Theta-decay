@@ -6,3 +6,26 @@
 
 import pandas as pd
 import os
+
+def greek_calc(
+    position: pd.DataFrame = None,
+    ) ->pd.DataFrame:
+    
+"""
+return a dataframe containing the current greeks exposure
+
+input:
+position: current position
+"""
+
+
+def pnl_calc(
+    position: pd.DataFrame = None,
+    ) ->pd.DataFrame:
+    
+"""
+return a dataframe containing the pnl comparing to last trading day
+
+input:
+position: current position
+"""

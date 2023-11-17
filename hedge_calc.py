@@ -4,3 +4,20 @@
 
 import pandas as pd
 import os
+
+def hedge_calc(
+    main: pd.DataFrame,
+    data : str = 'spy',
+    date: str = None,
+    ) ->pd.DataFrame:
+    
+"""
+return a dataframe containing the information of selected contrats
+
+input:
+main: a dataframe containing the main contract to hedge
+
+data : 'spy' or 'spx', contract used to hedge
+
+date: str in form of "yyyy-mm-dd", declare the date
+"""

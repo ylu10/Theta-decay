@@ -10,7 +10,7 @@ import os
 
 def contract_selct(
     selct_type: str ='main',
-    data : str = 'spy'
+    data : str = 'spy',
     date: str = None,
     main: pd.DataFrame = None,
     maxDTE: int = 20,
