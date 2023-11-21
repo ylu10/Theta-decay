@@ -1,3 +1,5 @@
+#workflow: A contract selection algorithm. This algorithm is used to select SPY and SPX contract that I will buy and sell. The algorithm can do contract selection according to the features (i.e. DTE, strike, theta, etc) using an utility function and defined constraints. The utility function should have penalty terms, i.e. penalty for too less or too many SPX contract.
+
 import pandas as pd
 import os
 
