@@ -28,13 +28,18 @@ data : 'spy' or 'spx'
 main: None when selct_type = 'main', a dataframe containing the main contract when selct_type = 'hedge'
 maxDTE: max DTE
 minDTE: min DTE
-maxDistance: max distance of strike from underlying in percentage
-minDistance: min distance of strike from underlying in percentage
-maxTheta: max Theta
-minTheta: min Theta
+maxDistance: max distance of strike from underlying in percentage, can be 'None'
+minDistance: min distance of strike from underlying in percentage, can be 'None'
+maxTheta: max Theta, can be 'None'
+minTheta: min Theta, can be 'None'
 moneyness: 'out' or 'in'
 """
-    contract_pd = pd.Dataframe()
+    if maxDistance == None: maxDistance = 1000
+    if minDistance == None: minDistance = 0
+    if maxTheta == None: maxTheta = 0
+    if minTheta == None: minTheta = -100
+    
+    contract_pd = pd.DataFrame()
     
     if selct_type == 'main':
         contract_pd =  pd.read_csv(data+'_cleaned/'+data+'_eod_'+date[:6]+'.csv', 
