@@ -17,24 +17,30 @@ def contract_selct(
     minTheta: float = None,
     moneyness : str = 'out') ->pd.DataFrame:
     
-"""
-return a dataframe containing the information of selected contracts
-
-input:
-selct_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
-contract_type: 'C' or 'P'
-date: str in form of "yyyymmdd", declare the date
-data : 'spy' or 'spx'
-main: None when selct_type = 'main', a dataframe containing the main contract when selct_type = 'hedge'
-maxDTE: max DTE
-minDTE: min DTE
-maxDistance: max distance of strike from underlying in percentage
-minDistance: min distance of strike from underlying in percentage
-maxTheta: max Theta
-minTheta: min Theta
-moneyness: 'out' or 'in'
-"""
-    contract_pd = pd.Dataframe()
+    """
+    return a dataframe containing the information of selected contracts
+    
+    input:
+    selct_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
+    contract_type: 'C' or 'P'
+    date: str in form of "yyyymmdd", declare the date
+    data : 'spy' or 'spx'
+    main: None when selct_type = 'main', a dataframe containing the main contract when selct_type = 'hedge'
+    maxDTE: max DTE
+    minDTE: min DTE
+    maxDistance: max distance of strike from underlying in percentage
+    minDistance: min distance of strike from underlying in percentage
+    maxTheta: max Theta
+    minTheta: min Theta
+    moneyness: 'out' or 'in'
+    """
+    
+    if maxDistance == None: maxDistance = 1000
+    if minDistance == None: minDistance = 0
+    if maxTheta == None: maxTheta = 0
+    if minTheta == None: minTheta = -100
+    
+    contract_pd = pd.DataFrame()
     
     if selct_type == 'main':
         contract_pd =  pd.read_csv(data+'_cleaned/'+data+'_eod_'+date[:6]+'.csv', 
@@ -60,4 +66,21 @@ moneyness: 'out' or 'in'
                 contract_pd = contract_pd.loc[contract_pd['[STRIKE]'] >= contract_pd['[UNDERLYING_LAST]']]
                 contract_pd = contract_pd.loc[(contract_pd['[P_THETA]'] >= minTheta) & (contract_pd['[P_THETA]'] <= maxTheta)]
     
-        return contract_pd
+        contract_pd['spread_pct'] = (contract_pd['['+contract_type+'_ASK]']-contract_pd['['+contract_type+'_BID]'])*2/(contract_pd['['+contract_type+'_BID]']+contract_pd['['+contract_type+'_ASK]'])
+        # Set inverted quote spread to zero
+        contract_pd['spread_pct'][contract_pd['spread_pct'] < 0] = 0
+        
+        # filter out contract with very small ask
+        contract_pd = contract_pd[contract_pd['['+contract_type+'_ASK]'] >= contract_pd['['+contract_type+'_ASK]'].mean()]
+        contract_pd = contract_pd[contract_pd['['+contract_type+'_ASK]'] >= 0.3]
+        
+        for i in ['['+contract_type+'_DELTA]', '['+contract_type+'_GAMMA]', '['+contract_type+'_VEGA]', '['+contract_type+'_THETA]']:
+            contract_pd['price_to_'+i]=(contract_pd['['+contract_type+'_BID]']+contract_pd['['+contract_type+'_ASK]'])/(2*contract_pd[i].abs())
+
+        # utility function to select main contract    
+        if data == 'spx': contract_pd['utility'] = 5000*contract_pd['spread_pct'] - 0.5*contract_pd['price_to_['+contract_type+'_DELTA]'] -0.005*contract_pd['price_to_['+contract_type+'_GAMMA]'] - contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
+        if data == 'spy': contract_pd['utility'] = 1000*contract_pd['spread_pct'] - 3*contract_pd['price_to_['+contract_type+'_DELTA]'] -contract_pd['price_to_['+contract_type+'_GAMMA]'] - 3* contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
+        
+        contract_pd = contract_pd.drop(columns=['spread_pct', 'price_to_['+contract_type+'_DELTA]', 'price_to_['+contract_type+'_GAMMA]', 'price_to_['+contract_type+'_VEGA]', 'price_to_['+contract_type+'_THETA]'])
+
+    return contract_pd.sort_values(by=['utility']).head(3)
