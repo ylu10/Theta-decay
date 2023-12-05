@@ -82,15 +82,15 @@ def contract_select(
 
         # utility function to select main contract    
     if selct_type == 'main':    
-        if spy_spx == 'spx': contract_pd['utility'] = 5000*contract_pd['spread_pct'] - 0.5*contract_pd['price_to_['+contract_type+'_DELTA]'] -0.005*contract_pd['price_to_['+contract_type+'_GAMMA]'] - contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
-        if spy_spx == 'spy': contract_pd['utility'] = 1000*contract_pd['spread_pct'] - 3*contract_pd['price_to_['+contract_type+'_DELTA]'] -contract_pd['price_to_['+contract_type+'_GAMMA]'] - 3* contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
+        if spy_spx == 'spx': contract_pd['UTILITY'] = 5000*contract_pd['spread_pct'] - 0.5*contract_pd['price_to_['+contract_type+'_DELTA]'] -0.005*contract_pd['price_to_['+contract_type+'_GAMMA]'] - contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
+        if spy_spx == 'spy': contract_pd['UTILITY'] = 1000*contract_pd['spread_pct'] - 3*contract_pd['price_to_['+contract_type+'_DELTA]'] -contract_pd['price_to_['+contract_type+'_GAMMA]'] - 3* contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
         
         # utility function to select hedge contract    
     if selct_type == 'hedge':    
-        if spy_spx == 'spx': contract_pd['utility'] = 5000*contract_pd['spread_pct'] + 0.05*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 15*contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
-        if spy_spx == 'spy': contract_pd['utility'] = 2000*contract_pd['spread_pct'] + 3*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 3* contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
+        if spy_spx == 'spx': contract_pd['UTILITY'] = 5000*contract_pd['spread_pct'] + 0.05*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 15*contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
+        if spy_spx == 'spy': contract_pd['UTILITY'] = 2000*contract_pd['spread_pct'] + 3*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 3* contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
         
     contract_pd = contract_pd.drop(columns=['spread_pct', 'price_to_['+contract_type+'_DELTA]', 'price_to_['+contract_type+'_GAMMA]', 'price_to_['+contract_type+'_VEGA]', 'price_to_['+contract_type+'_THETA]'])
 
-    return spy_spx+":", contract_pd.sort_values(by=['utility']).head(num)
-    # return contract_pd.sort_values(by=['utility'])
+    return spy_spx+":", contract_pd.sort_values(by=['UTILITY']).head(num)
+    # return contract_pd.sort_values(by=['UTILITY'])
