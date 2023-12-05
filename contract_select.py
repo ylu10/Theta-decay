@@ -16,7 +16,8 @@ def contract_select(
     minDistance: float = None,
     maxTheta: float = None,
     minTheta: float = None,
-    moneyness : str = 'out') ->pd.DataFrame:
+    moneyness : str = 'out',
+    num: int = 3) ->pd.DataFrame:
     
     """
     return a dataframe containing the information of selected contracts
@@ -35,6 +36,7 @@ def contract_select(
     maxTheta: max Theta
     minTheta: min Theta
     moneyness: 'out' or 'in'
+    num: number of contract returned
     """
     
     if maxDistance == None: maxDistance = 1000
@@ -90,5 +92,5 @@ def contract_select(
         
     contract_pd = contract_pd.drop(columns=['spread_pct', 'price_to_['+contract_type+'_DELTA]', 'price_to_['+contract_type+'_GAMMA]', 'price_to_['+contract_type+'_VEGA]', 'price_to_['+contract_type+'_THETA]'])
 
-    return spy_spx+":", contract_pd.sort_values(by=['utility']).head(3)
+    return spy_spx+":", contract_pd.sort_values(by=['utility']).head(num)
     # return contract_pd.sort_values(by=['utility'])
