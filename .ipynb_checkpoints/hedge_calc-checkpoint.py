@@ -2,7 +2,9 @@
 # the algorithm works like a Markwitz optimisation problem. Instead of optimising return and volatility, we optimise the greek exposure. 
 # After we select the contracts we want to short and the contracts we use to hedge. The optimising goal is to maintain delta, gamma and vega neutral while keeping most of the theta. The utility function incoporates penalty terms to avoid concentration of position
 
+from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 import pandas as pd
+import numpy as np
 import os
 
 def hedge_calc(
@@ -71,9 +73,19 @@ def hedge_calc(
     
     x0 = [min(0.1/len(hedge),main_mean[1]/(hedge[hedge_filtered_columns[1]].mean()*len(hedge)))]*len(hedge)
     result = minimize(fun, x0, method='trust-constr', options={'maxiter':1000}, tol=1e-6)
-    hedge['weight'] = result.x
-    main['weight'] = -1/len(main)
+    hedge['WEIGHT'] = result.x
+    main['WEIGHT'] = -1/len(main)
     
     x=result.x
     
-    return main_mean, main,result,fun1(x),hedge,np.sum(np.absolute(x)),x.sum()
+    #calculate the emini weight
+    quote_date = main.index[0][0]
+    main_delta = sum(main.filter(like='DELTA').values * main.filter(like='WEIGHT').values)
+    hedge_delta = sum(hedge.filter(like='DELTA').values * hedge.filter(like='WEIGHT').values)
+    emini =  pd.read_csv('emini/emini_eod_'+ quote_date[:4]+ quote_date[5:7] +'.csv', skipinitialspace=True)
+    emini = emini[emini['[QUOTE_DATE]'] == quote_date].set_index(['[QUOTE_DATE]'])
+    emini['WEIGHT'] = -main_delta-hedge_delta
+    
+    result = {'main':main, 'main_type':main_data, 'hedge': hedge, 'hedge_type':hedge_data, 'emini':emini}
+    
+    return result

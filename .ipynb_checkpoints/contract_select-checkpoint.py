@@ -92,5 +92,5 @@ def contract_select(
         
     contract_pd = contract_pd.drop(columns=['spread_pct', 'price_to_['+contract_type+'_DELTA]', 'price_to_['+contract_type+'_GAMMA]', 'price_to_['+contract_type+'_VEGA]', 'price_to_['+contract_type+'_THETA]'])
 
-    return spy_spx+":", contract_pd.sort_values(by=['UTILITY']).head(num)
+    return {selct_type+'_type': spy_spx, selct_type: contract_pd.sort_values(by=['UTILITY']).head(num)}
     # return contract_pd.sort_values(by=['UTILITY'])
