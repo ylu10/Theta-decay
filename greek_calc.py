@@ -5,6 +5,7 @@
 #4. We also record the pnl similarly as step 1 2 and 3.
 
 import pandas as pd
+import numpy as np
 import os
 
 def greek_calc(

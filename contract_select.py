@@ -4,7 +4,7 @@ import pandas as pd
 import os
 
 def contract_select(
-    selct_type: str = 'main',
+    select_type: str = 'main',
     contract_type: str = 'C',
     spy_spx : str = 'spy',
     date: str = None,
@@ -23,11 +23,11 @@ def contract_select(
     return a dataframe containing the information of selected contracts
     
     input:
-    selct_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
+    select_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
     contract_type: 'C' or 'P'
     date: str in form of "yyyymmdd", declare the date
     spy_spx : 'spy' or 'spx'
-    main: None when selct_type = 'main', a dataframe containing the main contract when selct_type = 'hedge'
+    main: None when select_type = 'main', a dataframe containing the main contract when select_type = 'hedge'
     minAsk: min contract ask price
     maxDTE: max DTE
     minDTE: min DTE
@@ -81,16 +81,16 @@ def contract_select(
         contract_pd['price_to_'+i]=(contract_pd['['+contract_type+'_BID]']+contract_pd['['+contract_type+'_ASK]'])/(2*contract_pd[i].abs())
 
         # utility function to select main contract    
-    if selct_type == 'main':    
+    if select_type == 'main':    
         if spy_spx == 'spx': contract_pd['UTILITY'] = 5000*contract_pd['spread_pct'] - 0.5*contract_pd['price_to_['+contract_type+'_DELTA]'] -0.005*contract_pd['price_to_['+contract_type+'_GAMMA]'] - contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
         if spy_spx == 'spy': contract_pd['UTILITY'] = 1000*contract_pd['spread_pct'] - 3*contract_pd['price_to_['+contract_type+'_DELTA]'] -contract_pd['price_to_['+contract_type+'_GAMMA]'] - 3* contract_pd['price_to_['+contract_type+'_VEGA]'] + 50* contract_pd['price_to_['+contract_type+'_THETA]']
         
         # utility function to select hedge contract    
-    if selct_type == 'hedge':    
+    if select_type == 'hedge':    
         if spy_spx == 'spx': contract_pd['UTILITY'] = 5000*contract_pd['spread_pct'] + 0.05*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 15*contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
         if spy_spx == 'spy': contract_pd['UTILITY'] = 2000*contract_pd['spread_pct'] + 3*contract_pd['price_to_['+contract_type+'_GAMMA]'] + 3* contract_pd['price_to_['+contract_type+'_VEGA]'] - 100* contract_pd['price_to_['+contract_type+'_THETA]']
         
     contract_pd = contract_pd.drop(columns=['spread_pct', 'price_to_['+contract_type+'_DELTA]', 'price_to_['+contract_type+'_GAMMA]', 'price_to_['+contract_type+'_VEGA]', 'price_to_['+contract_type+'_THETA]'])
 
-    return {selct_type+'_type': spy_spx, selct_type: contract_pd.sort_values(by=['UTILITY']).head(num)}
+    return {select_type+'_type': spy_spx, select_type: contract_pd.sort_values(by=['UTILITY']).head(num)}
     # return contract_pd.sort_values(by=['UTILITY'])
