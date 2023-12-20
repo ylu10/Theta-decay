@@ -11,7 +11,7 @@ def contract_select(
     main: pd.DataFrame = None,
     minAsk: float = None,
     maxDTE: int = 30,
-    minDTE: int = 10,
+    minDTE: int = 0,
     maxDistance: float = None,
     minDistance: float = None,
     maxTheta: float = None,
