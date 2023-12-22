@@ -25,7 +25,7 @@ def contract_select(
     input:
     select_type: "main" or "hedge", declare what type of contracts we are searching, whether the main contracts we are shorting, or the contracts that we used to hedge
     contract_type: 'C' or 'P'
-    date: str in form of "yyyymmdd", declare the date
+    date: str in form of "yyyy-mm-dd", declare the date
     spy_spx : 'spy' or 'spx'
     main: None when select_type = 'main', a dataframe containing the main contract when select_type = 'hedge'
     minAsk: min contract ask price
@@ -46,10 +46,10 @@ def contract_select(
     if minAsk == None: minAsk = 0
     
     contract_pd = pd.DataFrame()
-    contract_pd =  pd.read_csv(spy_spx+'_cleaned/'+spy_spx+'_eod_'+date[:6]+'.csv', 
+    contract_pd =  pd.read_csv(spy_spx+'_cleaned/'+spy_spx+'_eod_'+date[:4]+date[5:7]+'.csv', 
                        index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
     contract_pd = contract_pd.drop(columns='Unnamed: 0')
-    contract_pd = contract_pd.iloc[contract_pd.index.get_level_values('[QUOTE_DATE]')==date[:4]+'-'+date[4:6]+'-'+date[6:]]
+    contract_pd = contract_pd.iloc[contract_pd.index.get_level_values('[QUOTE_DATE]')==date]
     contract_pd = contract_pd.loc[(contract_pd['[DTE]']>=minDTE) & (contract_pd['[DTE]']<=maxDTE) 
             & (contract_pd['[STRIKE_DISTANCE_PCT]']>=minDistance) & (contract_pd['[STRIKE_DISTANCE_PCT]']<=maxDistance)]
     if contract_type == 'C':

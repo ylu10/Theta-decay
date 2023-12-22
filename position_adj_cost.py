@@ -1,6 +1,7 @@
 
 import pandas as pd
 import os
+import copy
 
 def position_adj_cost(
     original_position: dict = None,
@@ -14,12 +15,12 @@ def position_adj_cost(
     original_position: last trading day position
     """
     
-    main_original =  original_position['main'].copy()
-    hedge_original = original_position['hedge'].copy()
-    emini_original = original_position['emini'].copy()
+    main_original =  copy.deepcopy(original_position['main'])
+    hedge_original = copy.deepcopy(original_position['hedge'])
+    emini_original = copy.deepcopy(original_position['emini'])
     
-    main_adjusted =  adjusted_position['main'].copy()
-    hedge_adjusted = adjusted_position['hedge'].copy()
+    main_adjusted =  copy.deepcopy(adjusted_position['main'])
+    hedge_adjusted = copy.deepcopy(adjusted_position['hedge'])
     
     
     # getting the notional equity of the position
@@ -61,7 +62,7 @@ def position_adj_cost(
             else:
                 if n == (k-1):
                     main_original = main_original.append(main_adjusted.iloc[[m]])
-                    main_original['ADJUSTED WEIGHT'][-1] = main_original['WEIGHT'][-1].copy()
+                    main_original['ADJUSTED WEIGHT'][-1] = copy.deepcopy(main_original['WEIGHT'][-1])
                     main_original['WEIGHT'][-1] = 0
                     # print('c')
             
@@ -89,7 +90,7 @@ def position_adj_cost(
             else:
                 if n == (k-1):
                     hedge_original = hedge_original.append(hedge_adjusted.iloc[[m]])
-                    hedge_original['ADJUSTED WEIGHT'][-1] = hedge_original['WEIGHT'][-1].copy()
+                    hedge_original['ADJUSTED WEIGHT'][-1] = copy.deepcopy(hedge_original['WEIGHT'][-1])
                     hedge_original['WEIGHT'][-1] = 0
                     # print('c')
     
@@ -128,4 +129,4 @@ def position_adj_cost(
     adjust_cost = (sum(main_original['ADJUST COST']) + sum(hedge_original['ADJUST COST']))/abs(equity_sum)
     
     
-    return {'daily_rtn':adjust_cost, 'main':main_original, 'main_type':original_position['main_type'], 'hedge':hedge_original, 'hedge_type':original_position['hedge_type']}
+    return {'adjust_cost':adjust_cost, 'main':main_original, 'main_type':original_position['main_type'], 'hedge':hedge_original, 'hedge_type':original_position['hedge_type']}

@@ -5,22 +5,24 @@
 from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 import pandas as pd
 import numpy as np
+import copy
 import os
 
 def hedge_calc(
-    position: dict = None) ->dict:
+    original_position: dict = None) ->dict:
     
     """
-    return a dataframe containing the information of selected contrats
+    return a dict containing the weights of selected contracts
     
     input:
-    position['main']: a dataframe containing the main contract to hedge
-    position['hedge']: a dataframe containing the hedge contract to hedge
-    position['emini']: dataframe containing the emini contract
-    position['main_type']: type of contract, spx or spy
-    position['hedge_type']: type of contract, spx or spy
+    original_position['main']: a dataframe containing the main contract to hedge
+    original_position['hedge']: a dataframe containing the hedge contract to hedge
+    original_position['emini']: dataframe containing the emini contract
+    original_position['main_type']: type of contract, spx or spy
+    original_position['hedge_type']: type of contract, spx or spy
     """
-
+    position = copy.deepcopy(original_position)
+    
     if position['main_type'] == 'spy':
         columns = position['main'].filter(regex='DELTA').columns
         position['main'][columns] = position['main'][columns]/10
@@ -64,13 +66,14 @@ def hedge_calc(
         greeks = x.dot(position['hedge'][hedge_filtered_columns].values) - main_mean
         return greeks
 
-    constraint1 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[-1]].values), lb= main_mean[-1]*0.2, ub=[np.inf])
-    constraint2 = NonlinearConstraint(lambda x: np.sum(np.absolute(x)), lb=0, ub=1, keep_feasible=True)
-    constraint3 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[0]].values), lb = main_mean_target[0] - abs(main_mean_target[0])*0.2, ub = main_mean_target[0] + abs(main_mean_target[0])*0.2)
-    constraint4 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[1]].values), keep_feasible=True, lb= main_mean_target[1] - abs(main_mean_target[1])*0.2, ub = main_mean_target[1] + abs(main_mean_target[1])*0.2)
+    constraint1 = NonlinearConstraint(lambda x: np.sum(np.absolute(x)), lb=0, ub=1, keep_feasible=True)
+    constraint2 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[-1]].values), lb= main_mean[-1]*0.2, ub=[np.inf])
+    constraint3 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[0]].values), lb = main_mean_target[0] - abs(main_mean_target[0])*0.3, ub = main_mean_target[0] + abs(main_mean_target[0])*0.3)
+    constraint4 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[1]].values), lb= main_mean_target[1] - abs(main_mean_target[1])*0.5, ub = main_mean_target[1] + abs(main_mean_target[1])*0.5)
     
-    x0 = [min(0.1/len(position['hedge']),main_mean[1]/(position['hedge'][hedge_filtered_columns[1]].mean()*len(position['hedge'])))]*len(position['hedge'])
-    result = minimize(fun, x0, method='trust-constr', options={'maxiter':1000}, tol=1e-6)
+    x0 = [min(0.1/len(position['hedge']), main_mean[0]/(position['hedge'][hedge_filtered_columns[0]].mean()*len(position['hedge'])), main_mean[1]/(position['hedge'][hedge_filtered_columns[1]].mean()*len(position['hedge'])))]*len(position['hedge'])
+    result = minimize(fun, x0, method='trust-constr', options={'maxiter':1000}, constraints = [constraint1, constraint2, constraint3, constraint4], tol=1e-5)
+    
     position['hedge']['WEIGHT'] = result.x
     position['main']['WEIGHT'] = -1/len(position['main'])
     
@@ -86,3 +89,4 @@ def hedge_calc(
     
         
     return position
+    # return result
