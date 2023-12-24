@@ -81,7 +81,9 @@ def pnl_daily_calc(
         date = date_list[loc]
     elif loc == size-1:
         if int(main_pnl.index[0][0][5:7]) < 12: 
-            month = str(int(main_pnl.index[0][0][5:7])+1)
+            month = int(main_pnl.index[0][0][5:7])+1
+            if month < 10: month = '0'+ str(month)
+            else: month = str(month)
             contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+main_pnl.index[0][0][:4]+month+'.csv', 
                            index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
             date = contract_pd.index._levels[0][0]
