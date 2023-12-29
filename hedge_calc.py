@@ -66,12 +66,13 @@ def hedge_calc(
         greeks = x.dot(position['hedge'][hedge_filtered_columns].values) - main_mean
         return greeks
 
-    constraint1 = NonlinearConstraint(lambda x: np.sum(np.absolute(x)), lb=0, ub=1, keep_feasible=True)
-    constraint2 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[-1]].values), lb= main_mean[-1]*0.2, ub=[np.inf])
+    constraint1 = NonlinearConstraint(lambda x: np.sum(np.absolute(x)), lb=0, ub=1)
+    constraint2 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[-1]].values), lb= main_mean[-1]*0.2, ub=[np.inf], keep_feasible=True)
     constraint3 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[0]].values), lb = main_mean_target[0] - abs(main_mean_target[0])*0.3, ub = main_mean_target[0] + abs(main_mean_target[0])*0.3)
     constraint4 = LinearConstraint(np.array(position['hedge'][hedge_filtered_columns[1]].values), lb= main_mean_target[1] - abs(main_mean_target[1])*0.5, ub = main_mean_target[1] + abs(main_mean_target[1])*0.5)
     
-    x0 = [min(0.1/len(position['hedge']), main_mean[0]/(position['hedge'][hedge_filtered_columns[0]].mean()*len(position['hedge'])), main_mean[1]/(position['hedge'][hedge_filtered_columns[1]].mean()*len(position['hedge'])))]*len(position['hedge'])
+    # x0 = [min(main_mean[-1]*0.2/(position['hedge'][hedge_filtered_columns[-1]].mean()*len(position['hedge'])), main_mean[0]/(position['hedge'][hedge_filtered_columns[0]].mean()*len(position['hedge'])), main_mean[1]/(position['hedge'][hedge_filtered_columns[1]].mean()*len(position['hedge'])))]*len(position['hedge'])
+    x0 = [main_mean[-1]*0.1/(position['hedge'][hedge_filtered_columns[-1]].mean()*len(position['hedge']))] * len(position['hedge'])
     result = minimize(fun, x0, method='trust-constr', options={'maxiter':1000}, constraints = [constraint1, constraint2, constraint3, constraint4], tol=1e-5)
     
     position['hedge']['WEIGHT'] = result.x

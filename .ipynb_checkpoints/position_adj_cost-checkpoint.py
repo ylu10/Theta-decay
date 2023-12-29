@@ -129,4 +129,48 @@ def position_adj_cost(
     adjust_cost = (sum(main_original['ADJUST COST']) + sum(hedge_original['ADJUST COST']))/abs(equity_sum)
     
     
-    return {'adjust_cost':adjust_cost, 'main':main_original, 'main_type':original_position['main_type'], 'hedge':hedge_original, 'hedge_type':original_position['hedge_type']}
+    return {'adjust_cost':adjust_cost, 'main':main_original, 'main_type':original_position['main_type'], 'hedge':hedge_original, 'hedge_type':original_position['hedge_type'], 'emini':emini_original}
+
+
+
+def initial_position_cost(
+    initial_position: dict = None
+    ) ->dict:
+    
+    """
+    return a dict containing the percentage cost/spreads for openning new position 
+    
+    input:
+    initial_position: new position
+    """
+    
+    main_initial =  copy.deepcopy(initial_position['main'])
+    hedge_initial = copy.deepcopy(initial_position['hedge'])
+    emini_initial = copy.deepcopy(initial_position['emini'])
+    
+    # getting the notional equity of the position
+    equity_sum = 0
+    for i in range(len(main_initial)):
+        contract_to_calc = main_initial.iloc[i]
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
+        equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
+    for i in range(len(hedge_initial)):
+        contract_to_calc = hedge_initial.iloc[i]
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
+        equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
+    equity_sum = equity_sum + emini_initial['WEIGHT'].values * emini_initial['[UNDERLYING_LAST]'].values
+    
+    
+    #calculate the notional cost for openning the main contracts
+    main_initial['SPREAD'] = main_initial.filter(regex='ASK').values - main_initial.filter(regex='BID').values
+    main_initial['ADJUST COST'] = - (main_initial['SPREAD'] * abs(main_initial['WEIGHT'])).values
+    
+    #calculate the notional adjust cost for the hedge contracts     
+    hedge_initial['SPREAD'] = hedge_initial.filter(regex='ASK').values - hedge_initial.filter(regex='BID').values
+    hedge_initial['ADJUST COST'] = - (main_initial['SPREAD'] * abs(main_initial['WEIGHT'])).values
+
+    adjust_cost = (sum(main_initial['ADJUST COST']) + sum(hedge_initial['ADJUST COST']))/abs(equity_sum)
+    
+    return {'adjust_cost':adjust_cost, 'main':main_initial, 'main_type':initial_position['main_type'], 'hedge':hedge_initial, 'hedge_type':initial_position['hedge_type'], 'emini':emini_initial}
