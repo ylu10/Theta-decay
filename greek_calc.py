@@ -22,23 +22,81 @@ def greek_calc(
     desired_string = ['DELTA', 'GAMMA', 'VEGA', 'THETA', 'WEIGHT']
     main_filtered_columns = []
     hedge_filtered_columns = []
-    for i in desired_string:
-        main_filtered_columns.append([col for col in position['main'].columns if i in col])
-        hedge_filtered_columns.append([col for col in position['hedge'].columns if i in col])
-    #flatten the column list
-    main_filtered_columns=sum(main_filtered_columns,[])
-    hedge_filtered_columns= sum(hedge_filtered_columns,[])
     
-    greek = np.array([i*j for (i,j) in zip(position['main'][main_filtered_columns]['WEIGHT'].values, position['main'][main_filtered_columns].drop(columns=['WEIGHT']).values)])+\
-            np.array([i*j for (i,j) in zip(position['hedge'][hedge_filtered_columns]['WEIGHT'].values, position['hedge'][hedge_filtered_columns].drop(columns=['WEIGHT']).values)])
-    greek = greek.sum(axis=0).reshape((1, 4))
-    greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
-    greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
-    greek['[QUOTE_DATE]'] = position['main'].index[0][0]
-    greek.set_index('[QUOTE_DATE]', inplace=True)
-    
+    if len(position['main']) != 0:
+        if len(position['hedge']) != 0:
+            for i in desired_string:
+                main_filtered_columns.append([col for col in position['main'].columns if i in col])
+                hedge_filtered_columns.append([col for col in position['hedge'].columns if i in col])
+            #flatten the column list
+            main_filtered_columns= sum(main_filtered_columns,[])
+            hedge_filtered_columns= sum(hedge_filtered_columns,[])
+            #calc the greek
+            greek_main = np.array([i*j for (i,j) in zip(position['main']['WEIGHT'].values, position['main'][main_filtered_columns].drop(columns=['WEIGHT']).values)])
+            greek_hedge = np.array([i*j for (i,j) in zip(position['hedge']['WEIGHT'].values, position['hedge'][hedge_filtered_columns].drop(columns=['WEIGHT']).values)])
+            greek = (greek_main.sum(axis=0) + greek_hedge.sum(axis=0)).reshape((1, 4))
+            greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
+            greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
+            greek['[QUOTE_DATE]'] = position['main'].index[0][0]
+            greek.set_index('[QUOTE_DATE]', inplace=True)
+        else:
+            for i in desired_string:
+                main_filtered_columns.append([col for col in position['main'].columns if i in col])
+            #flatten the column list
+            main_filtered_columns=sum(main_filtered_columns,[])
+            #calc the greek
+            greek_main = np.array([i*j for (i,j) in zip(position['main']['WEIGHT'].values, position['main'][main_filtered_columns].drop(columns=['WEIGHT']).values)])
+            greek = greek_main.sum(axis=0).reshape((1, 4))
+            greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
+            greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
+            greek['[QUOTE_DATE]'] = position['main'].index[0][0]
+            greek.set_index('[QUOTE_DATE]', inplace=True)
+            
+    else:
+        if len(position['hedge']) != 0:
+            for i in desired_string:
+                hedge_filtered_columns.append([col for col in position['hedge'].columns if i in col])
+            #flatten the column list
+            hedge_filtered_columns=sum(hedge_filtered_columns,[])
+            #calc the greek
+            greek_hedge = np.array([i*j for (i,j) in zip(position['hedge']['WEIGHT'].values, position['hedge'][hedge_filtered_columns].drop(columns=['WEIGHT']).values)])
+            greek = greek_hedge.sum(axis=0).reshape((1, 4))
+            greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
+            greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
+            greek['[QUOTE_DATE]'] = position['hedge'].index[0][0]
+            greek.set_index('[QUOTE_DATE]', inplace=True)
+        else:
+            greek = pd.DataFrame({'DELTA':0, 'GAMMA':0, 'VEGA':0, 'THETA':0}, columns = ['DELTA', 'GAMMA', 'VEGA', 'THETA'],index=[0])
+
+   
     return greek
     
+def get_next_trading_day(yesterday: str, contract_type:str)->str:
+    # getting the next trading day's quote date and read the data
+    # yesterday = greek_pnl_daily.index[-1]
+    contract_pd = pd.DataFrame()
+    contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+yesterday[5:7]+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+    quote_date = contract_pd.index
+    date_list = quote_date._levels[0]
+    size = len(date_list)
+    loc = date_list.get_loc(yesterday)
+    if loc < size -1: 
+        loc = loc + 1
+        date = date_list[loc]
+    elif loc == size-1:
+        if int(yesterday[5:7]) < 12: 
+            month = int(yesterday[5:7])+1
+            if month < 10: month = '0'+ str(month)
+            else: month = str(month)
+            contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+month+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+            date = contract_pd.index._levels[0][0]
+        elif int(yesterday[5:7]) == 12:
+            year = str(int(yesterday[:4])+1)
+            contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+year+'01'+'.csv', 
+                           index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+            date = contract_pd.index._levels[0][0]
+    return date
+
 def pnl_daily_calc(
     position: dict = None,
     ) ->dict:
@@ -67,33 +125,11 @@ def pnl_daily_calc(
         equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
     equity_sum = equity_sum + emini_pnl['WEIGHT'].values * emini_pnl['[UNDERLYING_LAST]'].values
     
-    # getting the next trading day's quote date and read the data
-    contract_pd = pd.DataFrame()
-    contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+main_pnl.index[0][0][:4]+main_pnl.index[0][0][5:7]+'.csv', 
-                       index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-    quote_date = contract_pd.index
-    date_list = quote_date._levels[0]
-    yesterday = main_pnl.index[0][0]
-    size = len(date_list)
-    loc = date_list.get_loc(yesterday)
-    if loc < size -1: 
-        loc = loc + 1
-        date = date_list[loc]
-    elif loc == size-1:
-        if int(main_pnl.index[0][0][5:7]) < 12: 
-            month = int(main_pnl.index[0][0][5:7])+1
-            if month < 10: month = '0'+ str(month)
-            else: month = str(month)
-            contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+main_pnl.index[0][0][:4]+month+'.csv', 
-                           index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-            date = contract_pd.index._levels[0][0]
-        elif int(main_pnl.index[0][0][5:7]) == 12:
-            year = str(int(main_pnl.index[0][0][:4])+1)
-            contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+year+'01'+'.csv', 
-                           index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-            date = contract_pd.index._levels[0][0]
+    #get the next trading day date
+    date = get_next_trading_day(main_pnl.index[0][0], position['main_type'])
     
-    #getting the data for the next trading day
+     #getting the data for the next trading day
+    contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+date[:4]+date[5:7]+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
     contract_pd = contract_pd[contract_pd.index.get_level_values('[QUOTE_DATE]') == date]
     #dropping the unneeded columns
     contract_pd = contract_pd[main_pnl.columns[:11]]
@@ -103,10 +139,16 @@ def pnl_daily_calc(
     for i in range(len(main_pnl)):
         contract_to_update = main_pnl.iloc[i]
         expired_date= contract_to_update.name[1]
-        temp = contract_pd.loc[(date, expired_date)]
+        #try to find the correct contract, if not found, append the original contract
+        try: temp = contract_pd.loc[(date, expired_date)]
+        except:
+            filtered_data_holder = filtered_data_holder.append(contract_to_update)
+            continue
         temp=temp[temp['[STRIKE]'] == contract_to_update['[STRIKE]']]
-        filtered_data_holder = filtered_data_holder.append(temp)
-    
+        if len(temp) != 0:
+            filtered_data_holder = filtered_data_holder.append(temp)
+        else: filtered_data_holder = filtered_data_holder.append(contract_to_update)
+        
     #calculate the price difference and PNL percentage of the main contracts
     filtered_data_holder['WEIGHT'] = main_pnl['WEIGHT'].values
     filtered_data_holder['PNL'] = 0
@@ -130,9 +172,15 @@ def pnl_daily_calc(
         for i in range(len(hedge_pnl)):
             contract_to_update = hedge_pnl.iloc[i]
             expired_date= contract_to_update.name[1]
-            temp = contract_pd.loc[(date, expired_date)]
+            #try to find the correct contract, if not found, append the original contract
+            try: temp = contract_pd.loc[(date, expired_date)]
+            except:
+                filtered_data_holder = filtered_data_holder.append(contract_to_update)
+                continue
             temp=temp[temp['[STRIKE]'] == contract_to_update['[STRIKE]']]
-            filtered_data_holder = filtered_data_holder.append(temp)
+            if len(temp) != 0:
+                filtered_data_holder = filtered_data_holder.append(temp)
+            else: filtered_data_holder = filtered_data_holder.append(contract_to_update)
         #calculate the price difference of the main contracts
         filtered_data_holder['WEIGHT'] = hedge_pnl['WEIGHT'].values
         filtered_data_holder['PNL'] = 0
@@ -163,5 +211,9 @@ def pnl_daily_calc(
     
     return_sum = sum(main_pnl['PNL_PERCENTAGE']) + sum(hedge_pnl['PNL_PERCENTAGE']) + sum(emini_pnl['PNL_PERCENTAGE'])
     
-    return {'daily_rtn':return_sum, 'main':main_pnl, 'main_type':position['main_type'], 'hedge':hedge_pnl, 'hedge_type':position['hedge_type'], 'emini':emini_pnl}
+    #drop the contracts that cannot be updated/found in the next day
+    main_pnl = main_pnl.loc[main_pnl.index.get_level_values(0) == date]
+    hedge_pnl = hedge_pnl.loc[hedge_pnl.index.get_level_values(0) == date]
+    
+    return {'daily_rtn':return_sum, 'date':date, 'main':main_pnl, 'main_type':position['main_type'], 'hedge':hedge_pnl, 'hedge_type':position['hedge_type'], 'emini':emini_pnl}
     # return emini_pnl

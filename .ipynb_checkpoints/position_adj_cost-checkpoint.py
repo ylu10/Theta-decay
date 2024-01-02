@@ -1,4 +1,3 @@
-
 import pandas as pd
 import os
 import copy
@@ -21,23 +20,64 @@ def position_adj_cost(
     
     main_adjusted =  copy.deepcopy(adjusted_position['main'])
     hedge_adjusted = copy.deepcopy(adjusted_position['hedge'])
+    emini_adjusted = copy.deepcopy(adjusted_position['emini'])
     
-    
-    # getting the notional equity of the position
+    # getting the notional equity of the original position
     equity_sum = 0
     for i in range(len(main_original)):
         contract_to_calc = main_original.iloc[i]
-        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='BID').index
-        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='ASK').index
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
         equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
     for i in range(len(hedge_original)):
         contract_to_calc = hedge_original.iloc[i]
-        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='BID').index
-        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='ASK').index
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
         equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
     equity_sum = equity_sum + emini_original['WEIGHT'].values * emini_original['[UNDERLYING_LAST]'].values
+    # transform the weight to notional weight
+    for i in range(len(main_original)):
+        contract_to_adjust = main_original.iloc[i]
+        if contract_to_adjust['WEIGHT'] > 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='ASK').values / equity_sum 
+        elif contract_to_adjust['WEIGHT'] <= 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='BID').values / equity_sum
+    for i in range(len(hedge_original)):
+        contract_to_adjust = hedge_original.iloc[i]
+        if contract_to_adjust['WEIGHT'] > 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='ASK').values / equity_sum 
+        elif contract_to_adjust['WEIGHT'] <= 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='BID').values / equity_sum
+    emini_original['WEIGHT'] = emini_original['WEIGHT'].values * emini_original['[UNDERLYING_LAST]'].values / equity_sum
     
-    
+    # getting the notional equity of the adjusted position
+    equity_sum = 0
+    for i in range(len(main_adjusted)):
+        contract_to_calc = main_adjusted.iloc[i]
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
+        equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
+    for i in range(len(hedge_adjusted)):
+        contract_to_calc = hedge_adjusted.iloc[i]
+        if contract_to_calc['WEIGHT'] > 0: column = contract_to_calc.filter(regex='ASK').index
+        elif contract_to_calc['WEIGHT'] <= 0: column = contract_to_calc.filter(regex='BID').index
+        equity_sum = equity_sum + contract_to_calc.WEIGHT * contract_to_calc[column].values
+    equity_sum = equity_sum + emini_adjusted['WEIGHT'].values * emini_adjusted['[UNDERLYING_LAST]'].values
+    # transform the weight to notional weight
+    for i in range(len(main_adjusted)):
+        contract_to_adjust = main_adjusted.iloc[i]
+        if contract_to_adjust['WEIGHT'] > 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='ASK').values / equity_sum 
+        elif contract_to_adjust['WEIGHT'] <= 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='BID').values / equity_sum
+    for i in range(len(hedge_adjusted)):
+        contract_to_adjust = hedge_adjusted.iloc[i]
+        if contract_to_adjust['WEIGHT'] > 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='ASK').values / equity_sum 
+        elif contract_to_adjust['WEIGHT'] <= 0: 
+            contract_to_adjust['WEIGHT'] = contract_to_adjust['WEIGHT'] * contract_to_calc.filter(regex='BID').values / equity_sum
+    emini_adjusted['WEIGHT'] = emini_adjusted['WEIGHT'].values * emini_adjusted['[UNDERLYING_LAST]'].values / equity_sum
+        
     #update the original main contracts according to the adjusted main contract
     #add a columns of 'adjusted weight' and set the default value to 0
     main_original['ADJUSTED WEIGHT'] = 0
@@ -169,7 +209,7 @@ def initial_position_cost(
     
     #calculate the notional adjust cost for the hedge contracts     
     hedge_initial['SPREAD'] = hedge_initial.filter(regex='ASK').values - hedge_initial.filter(regex='BID').values
-    hedge_initial['ADJUST COST'] = - (main_initial['SPREAD'] * abs(main_initial['WEIGHT'])).values
+    hedge_initial['ADJUST COST'] = - (hedge_initial['SPREAD'] * abs(hedge_initial['WEIGHT'])).values
 
     adjust_cost = (sum(main_initial['ADJUST COST']) + sum(hedge_initial['ADJUST COST']))/abs(equity_sum)
     
