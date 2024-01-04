@@ -37,7 +37,7 @@ def greek_calc(
             greek = (greek_main.sum(axis=0) + greek_hedge.sum(axis=0)).reshape((1, 4))
             greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
             greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
-            greek['[QUOTE_DATE]'] = position['main'].index[0][0]
+            greek['[QUOTE_DATE]'] = position['date']
             greek.set_index('[QUOTE_DATE]', inplace=True)
         else:
             for i in desired_string:
@@ -49,7 +49,7 @@ def greek_calc(
             greek = greek_main.sum(axis=0).reshape((1, 4))
             greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
             greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
-            greek['[QUOTE_DATE]'] = position['main'].index[0][0]
+            greek['[QUOTE_DATE]'] = position['date']
             greek.set_index('[QUOTE_DATE]', inplace=True)
             
     else:
@@ -63,10 +63,10 @@ def greek_calc(
             greek = greek_hedge.sum(axis=0).reshape((1, 4))
             greek = pd.DataFrame(greek, columns=['DELTA', 'GAMMA', 'VEGA', 'THETA'])
             greek['DELTA'] = greek['DELTA'].values + position['emini']['WEIGHT'].values*1
-            greek['[QUOTE_DATE]'] = position['hedge'].index[0][0]
+            greek['[QUOTE_DATE]'] = position['date']
             greek.set_index('[QUOTE_DATE]', inplace=True)
         else:
-            greek = pd.DataFrame({'DELTA':0, 'GAMMA':0, 'VEGA':0, 'THETA':0}, columns = ['DELTA', 'GAMMA', 'VEGA', 'THETA'],index=[0])
+            greek = pd.DataFrame({'DELTA':0, 'GAMMA':0, 'VEGA':0, 'THETA':0}, columns = ['DELTA', 'GAMMA', 'VEGA', 'THETA'],index=position['date'])
 
    
     return greek
@@ -126,7 +126,7 @@ def pnl_daily_calc(
     equity_sum = equity_sum + emini_pnl['WEIGHT'].values * emini_pnl['[UNDERLYING_LAST]'].values
     
     #get the next trading day date
-    date = get_next_trading_day(main_pnl.index[0][0], position['main_type'])
+    date = get_next_trading_day(position['date'], position['main_type'])
     
      #getting the data for the next trading day
     contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+date[:4]+date[5:7]+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
