@@ -46,9 +46,8 @@ def contract_select(
     if max_spread_pct == None: max_spread_pct = 1
     
     contract_pd = pd.DataFrame()
-    contract_pd =  pd.read_csv(spy_spx+'_cleaned/'+spy_spx+'_eod_'+date[:4]+date[5:7]+'.csv', 
-                       index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-    contract_pd = contract_pd.drop(columns='Unnamed: 0')
+    contract_pd =  pd.read_parquet(spy_spx+'_cleaned/'+spy_spx+'_eod_'+date[:4]+date[5:7])
+    # contract_pd = contract_pd.drop(columns='Unnamed: 0')
     contract_pd = contract_pd.iloc[contract_pd.index.get_level_values('[QUOTE_DATE]')==date]
     contract_pd = contract_pd.loc[(contract_pd['[DTE]']>=minDTE) & (contract_pd['[DTE]']<=maxDTE) 
             & (contract_pd['[STRIKE_DISTANCE_PCT]']>=minDistance) & (contract_pd['[STRIKE_DISTANCE_PCT]']<=maxDistance)]

@@ -75,7 +75,7 @@ def get_next_trading_day(yesterday: str, contract_type:str)->str:
     # getting the next trading day's quote date and read the data
     # yesterday = greek_pnl_daily.index[-1]
     contract_pd = pd.DataFrame()
-    contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+yesterday[5:7]+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+    contract_pd =  pd.read_parquet(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+yesterday[5:7], columns=[])
     quote_date = contract_pd.index
     date_list = quote_date._levels[0]
     size = len(date_list)
@@ -88,13 +88,12 @@ def get_next_trading_day(yesterday: str, contract_type:str)->str:
             month = int(yesterday[5:7])+1
             if month < 10: month = '0'+ str(month)
             else: month = str(month)
-            contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+month+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-            date = contract_pd.index._levels[0][0]
+            contract_pd =  pd.read_parquet(contract_type+'_cleaned/'+contract_type+'_eod_'+yesterday[:4]+month, columns=[])
+            date = contract_pd.index[0][0]
         elif int(yesterday[5:7]) == 12:
             year = str(int(yesterday[:4])+1)
-            contract_pd =  pd.read_csv(contract_type+'_cleaned/'+contract_type+'_eod_'+year+'01'+'.csv', 
-                           index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
-            date = contract_pd.index._levels[0][0]
+            contract_pd =  pd.read_parquet(contract_type+'_cleaned/'+contract_type+'_eod_'+year+'01', columns=[])
+            date = contract_pd.index[0][0]
     return date
 
 def pnl_daily_calc(
@@ -129,7 +128,7 @@ def pnl_daily_calc(
     date = get_next_trading_day(position['date'], position['main_type'])
     
      #getting the data for the next trading day
-    contract_pd =  pd.read_csv(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+date[:4]+date[5:7]+'.csv', index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+    contract_pd = pd.read_parquet(position['main_type']+'_cleaned/'+position['main_type']+'_eod_'+date[:4]+date[5:7])
     contract_pd = contract_pd[contract_pd.index.get_level_values('[QUOTE_DATE]') == date]
     #dropping the unneeded columns
     contract_pd = contract_pd[main_pnl.columns[:11]]
@@ -161,8 +160,7 @@ def pnl_daily_calc(
     main_pnl = filtered_data_holder.copy()
     
     #calculate the price difference and PNL percentage of the hedge contracts
-    contract_pd =  pd.read_csv(position['hedge_type']+'_cleaned/'+position['hedge_type']+'_eod_'+date[:4]+date[5:7]+'.csv', 
-                           index_col=['[QUOTE_DATE]','[EXPIRE_DATE]'], skipinitialspace=True)
+    contract_pd =  pd.read_parquet(position['hedge_type']+'_cleaned/'+position['hedge_type']+'_eod_'+date[:4]+date[5:7])
     filtered_data_holder = pd.DataFrame()
     if date in contract_pd.index.get_level_values('[QUOTE_DATE]'):
         #getting the data for the next trading day
